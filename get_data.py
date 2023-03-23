@@ -384,6 +384,7 @@ def update_sheet():
     df = pd.read_csv("csv/res/result_call.csv",index_col=False)
     df_2 = pd.read_csv("csv/res/indiv_call_result.csv",index_col=False)
     df_3 = pd.read_csv("csv/res/rdv_demo.csv",index_col=False)
+    lem = pd.read_csv("csv/lemlist/campaigns-export.csv",index_col=False)
     from oauth2client.service_account import ServiceAccountCredentials
     import gspread
     from gspread_pandas import Spread
@@ -400,6 +401,7 @@ def update_sheet():
     s.df_to_sheet(df, sheet='Ringover-Global', start='A1',replace=True)
     s.df_to_sheet(df_2, sheet='Ringover-Indiv', start='A1',replace=True)
     s.df_to_sheet(df_3, sheet='Démos', start='A1',replace=True)
+    s.df_to_sheet(lem, sheet='Lemlist', start='A1',replace=True)
 
 
     # just gspread for update a cell
@@ -412,36 +414,7 @@ def update_sheet():
     s_indiv.update_cell(1,1,f'Updated : {today}')
     s_demo.update_cell(1,1,f'Updated : {today}')
 
-def test():
-    import requests
 
-    api_token = config.api_pipe
-    api_url_base = 'https://api.pipedrive.com/v1/'
-    filter_name = '#### RDV - this week'
-    fields = 'id,name,email,phone'
-
-    def get_filter_id(filter_name):
-        api_url = f'{api_url_base}filters/find?term={filter_name}&start=0&limit=1&api_token={api_token}'
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            filter_id = response.json()['data'][0]['id']
-            return filter_id
-        else:
-            return None
-
-    filter_id = get_filter_id(filter_name)
-    print(filter_id)
-    def get_people(filter_id, fields):
-        api_url = f'{api_url_base}persons?filter_id={filter_id}&start=0&limit=500&api_token={api_token}&fields={fields}'
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            return response.json()['data']
-        else:
-            return None
-
-    people = get_people(filter_id, fields)
-    for person in people:
-        print(person['name'], person['email'], person['phone'])
 
 
 

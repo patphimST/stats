@@ -56,12 +56,15 @@ def get_call_api():
 
 def merge_rdv_deal():
     df_rdv = pd.read_csv('csv/pipedrive/rdv.csv')
+    df_rdv = df_rdv.drop_duplicates(subset=['Organisation - Nom']).reset_index()
+
     df_deal = pd.read_csv('csv/pipedrive/deal.csv')
 
     l_m_deal_p10, l_m_deal_m10,l_stat_deal = [],[],[]
     l_m_offre_p10, l_m_offre_m10, l_m_offre_nc= [],[],[]
     l_won,l_open,l_lost = [],[],[]
     l_value_deal,l_when_deal,l_o_lost,l_when_won = [],[],[],[]
+    l_when_lost = []
     for i in range(len(df_rdv)):
         id_rdv = (df_rdv['Organisation - ID'][i])
         r_many = (df_rdv['Personne - 🚨 RDV obtenu > Volume mensuel estimé'][i])
@@ -93,14 +96,21 @@ def merge_rdv_deal():
             l_m_offre_m10.append("")
             l_m_offre_nc.append("")
         try:
-            when_deal = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Deal created"].values[0]
+            when_deal = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Affaire créée"].values[0]
             when_deal = datetime.strptime(when_deal, '%Y-%m-%d %H:%M:%S')
             when_deal = (str(when_deal)[:10])
         except:
             when_deal = ""
 
         try:
-            o_many = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Value"].values[0]
+            when_lost = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Heure de l'échec"].values[0]
+            when_lost = datetime.strptime(when_lost, '%Y-%m-%d %H:%M:%S')
+            when_lost = (str(when_lost)[:10])
+        except:
+            when_lost = ""
+
+        try:
+            o_many = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Valeur"].values[0]
             if o_many > 9999:
                 m_deal_p10 = 1
                 m_deal_m10 = 0
@@ -112,29 +122,31 @@ def merge_rdv_deal():
             o_many = 0
             m_deal_p10 = 0
             m_deal_m10 = 0
+
         try:
-            o_lost = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Lost reason"].values[0]
+            o_lost = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Raison de la perte"].values[0]
+            print(o_lost)
         except:
             o_lost = ""
 
         try:
-            when_won = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Won time"].values[0]
+            when_won = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Heure de la conclusion"].values[0]
             when_won = datetime.strptime(when_won, '%Y-%m-%d %H:%M:%S')
             when_won = (str(when_won)[:10])
         except:
             when_won = ""
 
         try:
-            is_deal = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Status"].values[0]
-            if is_deal == "Won" :
+            is_deal = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Statut"].values[0]
+            if is_deal == "Gagnée" :
                 won = 1
                 opened = 0
                 lost = 0
-            elif is_deal == "Open":
+            elif is_deal == "En cours":
                 won = 0
                 opened = 1
                 lost = 0
-            elif is_deal == "Lost":
+            elif is_deal == "Perdue":
                 won = 0
                 opened = 0
                 lost = 1
@@ -157,14 +169,15 @@ def merge_rdv_deal():
         l_m_deal_m10.append(m_deal_m10)
         l_value_deal.append(o_many)
         l_when_won.append(when_won)
-
-
+        l_when_lost.append(when_lost)
 
     df_rdv['class_rdv_nc'] = l_m_offre_nc
     df_rdv['class_rdv_m10'] = l_m_offre_m10
     df_rdv['class_rdv_p10'] = l_m_offre_p10
     df_rdv['when_deal'] = l_when_deal
     df_rdv['when_won'] = l_when_won
+    df_rdv['when_lost'] = l_when_lost
+    df_rdv['why_lost'] = l_o_lost
     df_rdv['class_deal_m10'] = l_m_deal_m10
     df_rdv['class_deal_p10'] = l_m_deal_p10
     df_rdv['deal_won'] = l_won
@@ -172,9 +185,11 @@ def merge_rdv_deal():
     df_rdv['deal_lost'] = l_lost
     df_rdv['stat'] = l_stat_deal
     df_rdv['value'] = l_value_deal
-    df_rdv.to_csv('csv/pipedrive/rdv2.csv')
+    df_rdv = df_rdv.drop(columns="index")
+    df_rdv.to_csv('csv/res/rdv2.csv')
 
-
+    for i in range (len(df_rdv)):
+        print(i)
 def clean_csv():
     
     # GET STATS FROM CALL.CSV
@@ -195,7 +210,7 @@ def clean_csv():
 
 
   # GET STATS FROM RDV.CSV
-    df_rdv = pd.read_csv('../stats/csv/pipedrive/rdv2.csv')
+    df_rdv = pd.read_csv('../stats/csv/res/rdv2.csv')
     df_rdv = df_rdv.rename(columns={'Activité - Créateur': 'UserName'})
     df_rdv['UserName'] = df_rdv['UserName'].replace('Thomas','Thomas  JUILLARD')
     l_sdr = ['Alisée Delon','Mariem Landolsi','Sabrina Methlouthi','Thomas  JUILLARD']
@@ -332,7 +347,7 @@ def clean_csv():
 
 def demos():
     #### DEMOS
-    df_rdv = pd.read_csv('../stats/csv/pipedrive/rdv2.csv')
+    df_rdv = pd.read_csv('../stats/csv/res/rdv2.csv')
     df_ringo = pd.read_csv('../stats/csv/res/df_call_sum.csv')
     df_rdv = df_rdv.rename(columns={'Activité - Créateur': 'UserName'})
     df_rdv['UserName'] = df_rdv['UserName'].replace('Thomas', 'Thomas  JUILLARD')
@@ -365,8 +380,6 @@ def demos():
 
     df_demo.to_csv(f"csv/res/rdv_demo.csv", index=False)
 
-
-
 def update_sheet():
     df = pd.read_csv("csv/res/result_call.csv",index_col=False)
     df_2 = pd.read_csv("csv/res/indiv_call_result.csv",index_col=False)
@@ -398,5 +411,38 @@ def update_sheet():
     s_global.update_cell(1,1,f'Updated : {today}')
     s_indiv.update_cell(1,1,f'Updated : {today}')
     s_demo.update_cell(1,1,f'Updated : {today}')
+
+def test():
+    import requests
+
+    api_token = config.api_pipe
+    api_url_base = 'https://api.pipedrive.com/v1/'
+    filter_name = '#### RDV - this week'
+    fields = 'id,name,email,phone'
+
+    def get_filter_id(filter_name):
+        api_url = f'{api_url_base}filters/find?term={filter_name}&start=0&limit=1&api_token={api_token}'
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            filter_id = response.json()['data'][0]['id']
+            return filter_id
+        else:
+            return None
+
+    filter_id = get_filter_id(filter_name)
+    print(filter_id)
+    def get_people(filter_id, fields):
+        api_url = f'{api_url_base}persons?filter_id={filter_id}&start=0&limit=500&api_token={api_token}&fields={fields}'
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            return response.json()['data']
+        else:
+            return None
+
+    people = get_people(filter_id, fields)
+    for person in people:
+        print(person['name'], person['email'], person['phone'])
+
+
 
 

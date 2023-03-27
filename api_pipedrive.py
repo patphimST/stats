@@ -71,11 +71,11 @@ def chiffre_hebdo():
         l_val.append(val)
     df_rdv['val'] = l_val
     df_rdv = df_rdv.groupby(['Personne - 🚨 Source du lead (Obligatoire)','val','Organisation - Nom']).count()
-    df_rdv.to_csv(f'csv/pipedrive/api/count_df_rdv.csv')
-    print(df_rdv['Organisation - ID'])
+    df_rdv = (df_rdv['Organisation - ID'])
+    df_rdv.to_excel(f'csv/pipedrive/count_df_rdv.xlsx')
 
-    df_rdv = df_rdv.groupby(['Personne - 🚨 Source du lead (Obligatoire)','val']).count()
-    print(df_rdv['Organisation - ID'])
+    # df_rdv = df_rdv.groupby(['Personne - 🚨 Source du lead (Obligatoire)','val']).count()
+    # print(df_rdv['Organisation - ID'])
     print("*****************************")
 
     df_deal = pd.read_csv('csv/pipedrive/deal_week.csv')
@@ -90,7 +90,27 @@ def chiffre_hebdo():
 
         l_val.append(val)
     df_deal['val'] = l_val
-    df_deal = df_deal.groupby(['val','Affaire - Organisation','Affaire - Valeur','Personne - 🚨 Source du lead (Obligatoire)']).count()
-    print(df_deal['Organisation - ID'])
-    df_deal = df_deal.groupby(['val']).count()
-    print(df_deal['Organisation - ID'])
+    df_deal = df_deal.groupby(['val','Affaire - Organisation','Personne - 🚨 Source du lead (Obligatoire)','Affaire - Valeur']).count().reset_index()
+    # print(df_deal['Organisation - ID'])
+    # df_deal = df_deal.groupby(['val']).count()
+    # df_deal = (df_deal['Organisation - ID'])
+    df_deal.to_excel(f'csv/pipedrive/count_df_deal.xlsx')
+    l_so = [("Market (Formulaire)","Démo"),("Prospection externe","Prospection Ext."),("Chasse (Sales)","Sales"),("Market (Email)","Email"),("Market (Chasse SDR)","Chasse SDR"),("Market (Call SDR)","Call SDR"),("Market (Publi)","Publi"),("Réseau Perso","Réseau Perso"),]
+    sum_deal_m10 = []
+    sum_deal_p10 = []
+    for i in range(len(df_deal)):
+        source = df_deal['Personne - 🚨 Source du lead (Obligatoire)'][i]
+        val = df_deal['val'][i]
+        valeur = df_deal["Affaire - Valeur"][i]
+
+        for lsa, lsb in l_so:
+            if source == lsa:
+                source2 = lsb
+                if val == ">10" and (source2 != "Sales" and source2 != "Prospection Ext."and source2 != "Réseau Perso" ):
+                    sum_deal_p10.append(valeur)
+                    print(df_deal['Affaire - Organisation'][i],f'({source2} - {valeur})')
+                elif val == "<10" and (source2 != "Sales" and source2 != "Prospection Ext."and source2 != "Réseau Perso" ):
+                    sum_deal_m10.append(valeur)
+                    print(df_deal['Affaire - Organisation'][i],f'({source2} - {valeur})')
+    print("Deal <10 :",sum(sum_deal_m10))
+    print("Deal >10 :",sum(sum_deal_p10))

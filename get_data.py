@@ -56,9 +56,15 @@ def get_call_api():
 
 def merge_rdv_deal():
     df_rdv = pd.read_csv('csv/pipedrive/rdv.csv')
-    df_rdv = df_rdv.drop_duplicates(subset=['Organisation - Nom']).reset_index()
-
+    df_rdv['Activité - Date d’ajout'] = pd.to_datetime(df_rdv['Activité - Date d’ajout'])
+    df_rdv = df_rdv.sort_values('Activité - Date d’ajout', ascending=False)
+    df_rdv = df_rdv.drop_duplicates('Organisation - Nom', keep='first').reset_index()
+    df_rdv.to_csv('csv/pipedrive/rdv-test.csv')
+    #
     df_deal = pd.read_csv('csv/pipedrive/deal.csv')
+    df_deal['Affaire - Affaire créée'] = pd.to_datetime(df_deal['Affaire - Affaire créée'])
+    df_deal = df_deal.sort_values('Affaire - Affaire créée', ascending=False)
+    df_deal = df_deal.drop_duplicates('Organisation - ID', keep='first').reset_index()
 
     l_m_deal_p10, l_m_deal_m10,l_stat_deal = [],[],[]
     l_m_offre_p10, l_m_offre_m10, l_m_offre_nc= [],[],[]
@@ -130,7 +136,7 @@ def merge_rdv_deal():
             o_lost = ""
 
         try:
-            when_won = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Heure de la conclusion"].values[0]
+            when_won = df_deal.loc[df_deal['Organisation - ID'] == id_rdv, "Affaire - Date de conclusion"].values[0]
             when_won = datetime.strptime(when_won, '%Y-%m-%d %H:%M:%S')
             when_won = (str(when_won)[:10])
         except:
@@ -188,8 +194,7 @@ def merge_rdv_deal():
     df_rdv = df_rdv.drop(columns="index")
     df_rdv.to_csv('csv/res/rdv2.csv')
 
-    for i in range (len(df_rdv)):
-        print(i)
+
 def clean_csv():
     
     # GET STATS FROM CALL.CSV
@@ -309,8 +314,6 @@ def clean_csv():
         l_won.append(find_deal_won)
         l_lost.append(find_deal_lost)
 
-
-
     # Ajout des listes dans le DF
     df_call_sum['presence_sdr'] = l_prez
     df_call_sum['rdv_obtenu'] = l_rdv
@@ -348,11 +351,9 @@ def clean_csv():
 def demos():
     #### DEMOS
     df_rdv = pd.read_csv('../stats/csv/res/rdv2.csv')
-    df_ringo = pd.read_csv('../stats/csv/res/df_call_sum.csv')
     df_rdv = df_rdv.rename(columns={'Activité - Créateur': 'UserName'})
     df_rdv['UserName'] = df_rdv['UserName'].replace('Thomas', 'Thomas  JUILLARD')
     l_week,l_jour = [],[]
-    # df_demo = df_rdv.loc[df_rdv['Personne - 🚨 Source du lead (Obligatoire)'] == "Market (Formulaire)"].reset_index()
     df_demo = df_rdv
     for i in range(len(df_demo)):
         source = (df_demo['Personne - 🚨 Source du lead (Obligatoire)'][i])
@@ -377,14 +378,27 @@ def demos():
     for a, b in l_day:
         df_demo["jour"] = df_demo["jour"].replace(b, a)
 
-
     df_demo.to_csv(f"csv/res/rdv_demo.csv", index=False)
 
+def for_sales():
+    df = pd.read_csv('csv/pipedrive/sales.csv')
+    df = df.fillna(0)
+    # Convertir la colonne date en datetime si ce n'est pas déjà le cas
+    df['Affaire - Affaire créée'] = pd.to_datetime(df['Affaire - Affaire créée'])
+    df["Affaire - Heure de l'échec"] = pd.to_datetime(df["Affaire - Heure de l'échec"])
+    df["Affaire - Date de conclusion"] = pd.to_datetime(df["Affaire - Date de conclusion"])
+
+    # Trier le DataFrame par date
+    df = df.sort_values('Affaire - Affaire créée')
+
+    # Grouper par entreprise et obtenir la dernière affaire pour chaque entreprise
+    df_derniere_affaire = df.groupby('Affaire - Organisation').last().reset_index()
+    df_derniere_affaire.to_csv(f"csv/pipedrive/deals_sales.csv", index=False)
+
 def update_sheet():
-    df = pd.read_csv("csv/res/result_call.csv",index_col=False)
-    df_2 = pd.read_csv("csv/res/indiv_call_result.csv",index_col=False)
     df_3 = pd.read_csv("csv/res/rdv_demo.csv",index_col=False)
-    lem = pd.read_csv("csv/lemlist/campaigns-export.csv",index_col=False)
+    df_4= pd.read_csv("csv/pipedrive/deals_sales.csv",index_col=False)
+    # lem = pd.read_csv("csv/lemlist/campaigns-export.csv",index_col=False)
     from oauth2client.service_account import ServiceAccountCredentials
     import gspread
     from gspread_pandas import Spread
@@ -398,24 +412,46 @@ def update_sheet():
 
     # gspread_pandas pour ajouter le df dans le sheet
     s = Spread('stats SDR 22-23')
-    s.df_to_sheet(df, sheet='Ringover-Global', start='A1',replace=True)
-    s.df_to_sheet(df_2, sheet='Ringover-Indiv', start='A1',replace=True)
     s.df_to_sheet(df_3, sheet='Démos', start='A1',replace=True)
-    s.df_to_sheet(lem, sheet='Lemlist', start='A1',replace=True)
+    s.df_to_sheet(df_4, sheet='Deals', start='A1',replace=True)
+    # s.df_to_sheet(lem, sheet='Lemlist', start='A1',replace=True)
 
 
     # just gspread for update a cell
-    s_global = client.open('stats SDR 22-23').worksheet('Ringover-Global')
-    s_indiv = client.open('stats SDR 22-23').worksheet('Ringover-Indiv')
     s_demo = client.open('stats SDR 22-23').worksheet('Démos')
 
-
-    s_global.update_cell(1,1,f'Updated : {today}')
-    s_indiv.update_cell(1,1,f'Updated : {today}')
     s_demo.update_cell(1,1,f'Updated : {today}')
 
+def activities():
+    import requests
+    import json
 
+    api_token = 'YOUR_API_TOKEN'
+    filter_id = 1107
+    start = 0
+    limit = 1000
+    url = f'https://companydomain.pipedrive.com/api/v1/activities?api_token={config.api_pipe}&start={start}&limit={limit}&filter_id={filter_id}'
 
+    # initialise une liste pour stocker toutes les activités
+    all_activities = []
+
+    while True:
+        response = requests.get(url)
+        data = response.json()
+        if response.status_code == 200:
+            all_activities.extend(data['data'])
+
+            # check if there is additional data
+            if data['additional_data']['pagination']['more_items_in_collection']:
+                start += limit
+                url = f'https://companydomain.pipedrive.com/api/v1/activities?api_token={api_token}&start={start}&limit={limit}&filter_id={filter_id}'
+            else:
+                break
+        else:
+            print('Error:', data['error'])
+            break
+
+    print('Nombre total d\'activités récupérées:', len(all_activities))
 
 
 

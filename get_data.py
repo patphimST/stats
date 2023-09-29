@@ -5,19 +5,6 @@ import config
 from datetime import datetime
 
 
-
-# def merge_rdv_deal():
-#     df_rdv = pd.read_csv('csv/pipedrive/rdv.csv')
-#     df_rdv['Activité - Date d’ajout'] = pd.to_datetime(df_rdv['Activité - Date d’ajout'])
-#     df_rdv = df_rdv.sort_values('Activité - Date d’ajout', ascending=False)
-#     df_rdv = df_rdv.drop_duplicates('Organisation - Nom', keep='first').reset_index()
-#
-#     df_deal = pd.read_csv('csv/pipedrive/deal.csv')
-#     df_deal['Affaire - Affaire créée'] = pd.to_datetime(df_deal['Affaire - Affaire créée'])
-#     df_deal = df_deal.sort_values('Affaire - Affaire créée', ascending=False)
-#     df_deal = df_deal.drop_duplicates('Organisation - ID', keep='first').reset_index()
-#     df_deal.to_csv(f"csv/pipedrive/deals_clean.csv", index=False)
-
 def demos():
     df_rdv = pd.read_csv('csv/pipedrive/rdv.csv')
     df_rdv['Organisation - Étiquette'] = df_rdv['Organisation - Étiquette'].fillna("-")

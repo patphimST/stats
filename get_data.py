@@ -32,41 +32,63 @@ def demos():
 
     df1 = pd.merge(df_rdv, df_deal, left_on='Organisation - Nom', right_on='Affaire - Organisation', how='left')
 
-    # Supprimer la colonne "name" de df1 si nécessaire
     df1 = df1.drop('Affaire - Organisation', axis=1)
 
     df1["Activité - Date d’ajout"] = pd.to_datetime(df1["Activité - Date d’ajout"])
     df1["Affaire - Affaire créée"] = pd.to_datetime(df1["Affaire - Affaire créée"])
 
-    # Ajout de la colonne "Statut"
-    df1["Statut"] = ""
-    df1.loc[df1["Affaire - Affaire créée"] < df1["Activité - Date d’ajout"], "Statut"] = "OLD"
-    df1.loc[df1["Affaire - Affaire créée"] >= df1["Activité - Date d’ajout"], "Statut"] = "OK"
-    df1.loc[df1["Affaire - Affaire créée"].isnull() | (df1["Affaire - Affaire créée"] == ""), "Statut"] = "NO"
     df1.to_csv('csv/pipedrive/rdv2.csv')
 
+def marquage_n():
+
+    df = pd.read_csv('csv/pipedrive/rdv2.csv')
+
+    def classify_date(date):
+        if pd.Timestamp('2021-10-1') <= date <= pd.Timestamp('2022-09-30'):
+            return 'N-2'
+        elif pd.Timestamp('2022-10-1') <= date <= pd.Timestamp('2023-09-30'):
+            return 'N-1'
+        elif pd.Timestamp('2023-10-1') <= date <= pd.Timestamp('2024-09-30'):
+            return 'N'
+        else:
+            return None  # ou vous pourriez vouloir gérer autrement les dates hors périodes
+
+    # Convertir les colonnes de date en datetime
+    df['Activité - Date d’ajout'] = pd.to_datetime(df['Activité - Date d’ajout'])
+    df['Affaire - Affaire créée'] = pd.to_datetime(df['Affaire - Affaire créée'])
+    df['Affaire - Date de gain'] = pd.to_datetime(df['Affaire - Date de gain'])
+    df["Affaire - Heure de l'échec"] = pd.to_datetime(df["Affaire - Heure de l'échec"])
+
+    # Appliquer la fonction pour créer les nouvelles colonnes
+    df['RDV_N'] = df['Activité - Date d’ajout'].apply(classify_date)
+    df['OFFRE_N'] = df['Affaire - Affaire créée'].apply(classify_date)
+    df['WON_N'] = df['Affaire - Date de gain'].apply(classify_date)
+    df['LOST_N'] = df["Affaire - Heure de l'échec"].apply(classify_date)
+
+    unnamed_cols = [col for col in df.columns if col.startswith('Unnamed')]
+    df.drop(columns=unnamed_cols, inplace=True)
+    df = df.drop(columns=['Affaire - Visible par',"Personne - Étiquette","Personne - Intitulé du poste","Activité - Date d'échéance","Affaire - Titre"])
+
+    df.to_csv('csv/pipedrive/rdv2.csv')
 
 def update_sheet():
-    df_3 = pd.read_csv("csv/pipedrive/rdv2.csv",index_col=False)
-    # df_4= pd.read_csv("csv/pipedrive/deals_clean.csv",index_col=False)
-    # df_6= pd.read_csv("csv/pipedrive/rdv&deal.csv",index_col=False)
-    # df_5= pd.read_csv("csv/pipedrive/decouverte.csv",index_col=False)
+    df = pd.read_csv("csv/pipedrive/rdv2.csv",index_col=False)
+    unnamed_cols = [col for col in df.columns if col.startswith('Unnamed')]
+    df.drop(columns=unnamed_cols, inplace=True)
+    df['Affaire - Valeur'] = df['Affaire - Valeur'].astype(str)
+    df['Affaire - Valeur'] = df['Affaire - Valeur'].str.replace('.', ',', regex=False)
+    df['Affaire - Valeur'] = df['Affaire - Valeur'].str.replace('nan', '', regex=False)
+
+    df.to_csv('csv/pipedrive/rdv2.csv')
+
+    # df['Affaire - Valeur'] = pd.to_numeric(df['Affaire - Valeur'], errors='coerce')
     from oauth2client.service_account import ServiceAccountCredentials
 
     from gspread_pandas import Spread
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name("creds/creds_sheet.json", scope)
 
-    # client = gspread.authorize(creds)
-
-    # today = datetime.now().strftime('%d/%m/%Y - %H:%M')
-    # today = (today)
-
-    # gspread_pandas pour ajouter le df dans le sheet
     s = Spread("stats Acquisition 22-23")
-    s.df_to_sheet(df_3, sheet='Demos', start='A1',replace=True)
-    # s.df_to_sheet(df_4, sheet='Deals', start='A1',replace=True)
-    # s.df_to_sheet(df_5, sheet='Decouverte', start='A1',replace=True)
-    # s.df_to_sheet(df_6, sheet='Demos&Deals', start='A1',replace=True)
+    s.df_to_sheet(df, sheet='Demos', start='A1',replace=True)
 
 

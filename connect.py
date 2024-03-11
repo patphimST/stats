@@ -79,7 +79,6 @@ def search_pers(pers_name):
         org_act_count = (orga['data']["activities_count"])
         print(org_id,org_name,org_label,org_act_count)
 
-
 def filter():
     search = requests.get(
         f'https://supertripper.pipedrive.com/api/v1/activities/?api_token={config.api_pipe}&filter_id=1055')

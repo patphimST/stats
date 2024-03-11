@@ -8,7 +8,7 @@ from datetime import datetime
 def demos():
     df_rdv = pd.read_csv('csv/pipedrive/rdv.csv',delimiter=",")
     df_rdv['Organisation - Étiquette'] = df_rdv['Organisation - Étiquette'].fillna("-")
-    df_rdv['Personne - 🚨 Volume mensuel estimé'] = df_rdv['Personne - 🚨 Volume mensuel estimé'].fillna("-")
+    df_rdv['Organisation - 💶 Volume mensuel estimé'] = df_rdv['Organisation - 💶 Volume mensuel estimé'].fillna("-")
     if "Activité - Date de création" in df_rdv.columns:
         # Renommer la colonne en "Date d'ajout"
         df_rdv.rename(columns={"Activité - Date de création": "Activité - Date d’ajout"}, inplace=True)
@@ -69,7 +69,7 @@ def marquage_n():
 
     unnamed_cols = [col for col in df.columns if col.startswith('Unnamed')]
     df.drop(columns=unnamed_cols, inplace=True)
-    df = df.drop(columns=['Affaire - Visible par',"Personne - Étiquette","Personne - Intitulé du poste","Activité - Date d'échéance","Affaire - Titre"])
+    # df = df.drop(columns=['Affaire - Visible par',"Personne - Étiquette","Personne - Intitulé du poste","Activité - Date d'échéance","Affaire - Titre"])
     #
     # def categorize_source(value):
     #     if "Market - Sales" in value:
